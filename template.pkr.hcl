@@ -18,7 +18,7 @@ locals {
   install_root_password = uuidv4()
 }
 
-source "qemu" "primary" {
+source "qemu" "nixos" {
   boot_command   = [
     "sudo passwd<enter><wait>",
     "${local.install_root_password}<enter><wait>",
@@ -38,13 +38,18 @@ source "qemu" "primary" {
 }
 
 build {
-  sources = ["source.qemu.primary"]
+  sources = ["source.qemu.nixos"]
   provisioner "shell" {
     inline = [
-      "sgdisk -o /dev/vda",
-      "sgdisk -n 1:0:0 /dev/vda",
-      "mkfs.ext4 -U ${local.root_partition_uuid} /dev/vda1",
-      "mount -U ${local.root_partition_uuid} /mnt",
+      "parted /dev/vda -- mklabel gpt",
+      "parted /dev/vda -- mkpart bios_grub 1MiB 2MiB",
+      "parted /dev/vda -- set 1 bios_grub on",
+      "parted /dev/vda -- mkpart primary 2MiB 100%",
+      "sgdisk -u 2:${local.root_partition_uuid} /dev/vda",
+      "partprobe /dev/vda",
+
+      "mkfs.ext4 /dev/disk/by-partuuid/${local.root_partition_uuid}",
+      "mount PARTUUID=${local.root_partition_uuid} /mnt",
     ]
   }
   provisioner "shell" {
@@ -54,7 +59,7 @@ build {
       "nix-channel --add ${var.update_channel} nixos",
       "nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable",
       "nix-channel --update",
-      "nixos-install && reboot",
+      "nixos-install",
     ]
   }
 }
