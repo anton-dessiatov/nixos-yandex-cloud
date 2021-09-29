@@ -39,6 +39,7 @@ source "qemu" "nixos" {
 
 build {
   sources = ["source.qemu.nixos"]
+  # Initialize storage
   provisioner "shell" {
     inline = [
       "parted /dev/vda -- mklabel gpt",
@@ -52,6 +53,7 @@ build {
       "mount PARTUUID=${local.root_partition_uuid} /mnt",
     ]
   }
+  # Set up the system
   provisioner "shell" {
     inline = [
       "nixos-generate-config --root /mnt",
@@ -59,7 +61,13 @@ build {
       "nix-channel --add ${var.update_channel} nixos",
       "nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable",
       "nix-channel --update",
-      "nixos-install",
+      "nixos-install --no-root-passwd",
+    ]
+  }
+  # Add 'nixpkgs-unstable' channel that is referenced by the default configuration
+  provisioner "shell" {
+    inline = [
+      "nixos-enter -c 'nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable'",
     ]
   }
 }
