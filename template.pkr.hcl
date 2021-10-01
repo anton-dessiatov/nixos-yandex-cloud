@@ -67,7 +67,7 @@ build {
   # Add 'nixpkgs-unstable' channel that is referenced by the default configuration
   provisioner "shell" {
     inline = [
-      "nixos-enter -c 'nix-channel --add https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable'",
+      "echo 'https://nixos.org/channels/nixpkgs-unstable nixpkgs-unstable' >> /mnt/root/.nix-channels",
     ]
   }
 }
